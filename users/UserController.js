@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const bodyParser = require('body-parser');
-const fs = require('fs');
+const MainController = require('../MainController')
 
 router.use(bodyParser.urlencoded({ extended: true }));
 router.use(bodyParser.json());
@@ -10,104 +10,38 @@ const ENTITY_NAME = "user";
 const ENTITY_NAME_PLURAL = "users";
 const ENTITY_FILE_PATH = "users/users.json"
 
+// a middleware sub-stack shows request info for any type of HTTP request to the /user/:id path
+router.use('/', function(req, res, next) {
+  console.log('Request URL:', req.originalUrl);
+  next();
+}, function (req, res, next) {
+  console.log('Request Type:', req.method);
+  next();
+});
+
 // CREATE
 router.post('/', function (req, response) {
-
-  fs.readFile(ENTITY_FILE_PATH, 'utf8', (err, data) => {
-    if (err){
-        console.log(err);
-    } else {  
-
-      let obj = JSON.parse(data);
-      const newObject = {id:obj[ENTITY_NAME_PLURAL].length+1, name:req.body.name, password:req.body.password}
-      obj[ENTITY_NAME_PLURAL].push(newObject);
-
-      console.log(obj[ENTITY_NAME_PLURAL]);
-
-      json = JSON.stringify(obj);
-      fs.writeFile(ENTITY_FILE_PATH, json, 'utf8', (err, res) => {
-        if(err){
-          console.error(err);
-        } else {
-          response.status(200).send(`${ENTITY_NAME} ${JSON.stringify(newObject)} has been successfully registered !`);
-        }
-      });
-    }
-  });
+  MainController.create(ENTITY_NAME, ENTITY_NAME_PLURAL, ENTITY_FILE_PATH, req, response);
 });
 
 // GET ONE BY ID
 router.get('/:id', function (req, response) {
-  fs.readFile(ENTITY_FILE_PATH, 'utf8', (err, data) => {
-    if (err){
-        console.log(err);
-    } else {  
-      const obj = JSON.parse(data);
-      const index = obj[ENTITY_NAME_PLURAL].findIndex(el=> (el.id === Number(req.params.id)));
-      const selectedObject = obj[ENTITY_NAME_PLURAL][index];
-      response.status(200).send(selectedObject);
-    }
-  });
+  MainController.select(ENTITY_NAME, ENTITY_NAME_PLURAL, ENTITY_FILE_PATH, req, response);
 });
 
 // DELETE BY ID
 router.delete('/:id', function (req, response) {
-  fs.readFile(ENTITY_FILE_PATH, 'utf8', (err, data) => {
-    if (err){
-        console.log(err);
-    } else {  
-      const obj = JSON.parse(data);
-      const index = obj[ENTITY_NAME_PLURAL].findIndex(el=> (el.id === Number(req.params.id)));
-      const removedObject = obj[ENTITY_NAME_PLURAL][index];
-      obj[ENTITY_NAME_PLURAL].splice(index, 1);
-
-      json = JSON.stringify(obj);
-      fs.writeFile(ENTITY_FILE_PATH, json, 'utf8', (err, res) => {
-        if(err){
-          console.error(err);
-        } else {
-          response.status(200).send(`${ENTITY_NAME} ${JSON.stringify(removedObject)} has been successfully deleted !`);
-        }
-      });
-    }
-  });
+  MainController.delet(ENTITY_NAME, ENTITY_NAME_PLURAL, ENTITY_FILE_PATH, req, response);
 });
 
 // UPDATE ONE BY ID
 router.put('/:id', function (req, response) {
-  fs.readFile(ENTITY_FILE_PATH, 'utf8', (err, data) => {
-    if (err){
-        console.log(err);
-    } else {  
-      const obj = JSON.parse(data);
-      const index = obj[ENTITY_NAME_PLURAL].findIndex(el=> (el.id === Number(req.params.id)));
-      const objectToUpdate = obj[ENTITY_NAME_PLURAL][index];
-      const updatedObject =  {id:req.params.id, name:req.body.name, password:req.body.password};
-      obj[ENTITY_NAME_PLURAL][index] = updatedObject;
-
-      json = JSON.stringify(obj);
-      fs.writeFile(ENTITY_FILE_PATH, json, 'utf8', (err, res) => {
-        if(err){
-          console.error(err);
-        } else {
-          response.status(200).send(`${ENTITY_NAME} ${JSON.stringify(objectToUpdate)} has been successfully updated to ${JSON.stringify(updatedObject)}!`);
-        }
-      });
-    }
-  });
+  MainController.put(ENTITY_NAME, ENTITY_NAME_PLURAL, ENTITY_FILE_PATH, req, response);
 });
 
 // GETS ALL
 router.get('/', function (req, response) {
-  fs.readFile(ENTITY_FILE_PATH, 'utf8', (err, data) => {
-    if (err){
-        console.log(err);
-    } else {  
-
-      let obj = JSON.parse(data);
-      response.status(200).send(obj[ENTITY_NAME_PLURAL]);
-    }
-  });
+  MainController.selectAll(ENTITY_NAME, ENTITY_NAME_PLURAL, ENTITY_FILE_PATH, req, response);
 });
 
 module.exports = router;
