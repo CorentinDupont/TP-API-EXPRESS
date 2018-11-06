@@ -1,6 +1,13 @@
 // app.js
 const express = require('express');
 const app = express();
+const mongoDbClient = require('./mongo.connector');
+
+mongoDbClient.init().then( () => {
+
+}).catch(err => {
+  
+});
 
 const ItemController = require('./items/ItemController');
 app.use('/items', ItemController);

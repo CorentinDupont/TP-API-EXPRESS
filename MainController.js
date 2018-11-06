@@ -1,90 +1,50 @@
 const fs = require('fs');
+const mongoDbClient = require('./mongo.connector');
+const ObjectID = require('mongodb').ObjectID;
 
 function create(entityName, entityNamePlural, filePath, request, response, fields){
   const check = checkBody(request.body, fields);
   if (check.ok) {
-    fs.readFile(filePath, 'utf8', (err, data) => {
-      if (err){
-          console.log(err);
-      } else {  
-        let obj = JSON.parse(data);
-        const newObject = {id:obj[entityNamePlural].length+1, ...request.body}
-        obj[entityNamePlural].push(newObject);
-    
-        json = JSON.stringify(obj);
-        fs.writeFile(filePath, json, 'utf8', (err, res) => {
-          if(err){
-            console.error(err);
-          } else {
-            response.status(200).send(`${entityName} ${JSON.stringify(newObject)} has been successfully registered !`);
-          }
-        });
-      }
-    });
+    const newObject = request.body;
+    mongoDbClient.db.collection(entityNamePlural).save(newObject, (err, result) => {
+      if (err) return console.log(err)
+  
+      console.log(`${newObject} was correctly saved to database`)
+      response.status(200).send(`${JSON.stringify(newObject)} was correctly saved to database`)
+    })
   } else {
     response.send(`additional keys : ${check.additionalKeys}, missing keys : ${check.missingKeys}`);
   }
 }
 
 function select(entityName, entityNamePlural, filePath, request, response){
-  fs.readFile(filePath, 'utf8', (err, data) => {
-    if (err){
-        console.log(err);
-    } else {  
-      const obj = JSON.parse(data);
-      const index = obj[entityNamePlural].findIndex(el=> (el.id === Number(request.params.id)));
-      const selectedObject = obj[entityNamePlural][index];
-      response.status(200).send(selectedObject);
-    }
+  mongoDbClient.db.collection(entityNamePlural).findOne({_id:ObjectID(request.params.id)}, (err, result) => {
+    if (err) throw err;
+    console.log("1 document returned");
+    response.status(200).send(result);
   });
 }
 
 function delet(entityName, entityNamePlural, filePath, request, response){
-  fs.readFile(filePath, 'utf8', (err, data) => {
-    if (err){
-        console.log(err);
-    } else {  
-      const obj = JSON.parse(data);
-      const index = obj[entityNamePlural].findIndex(el=> (el.id === Number(request.params.id)));
-      const removedObject = obj[entityNamePlural][index];
-      obj[entityNamePlural].splice(index, 1);
-
-      json = JSON.stringify(obj);
-      fs.writeFile(filePath, json, 'utf8', (err, res) => {
-        if(err){
-          console.error(err);
-        } else {
-          response.status(200).send(`${entityName} ${JSON.stringify(removedObject)} has been successfully deleted !`);
-        }
-      });
-    }
+  mongoDbClient.db.collection(entityNamePlural).deleteOne({_id:ObjectID(request.params.id)}, (err, obj) => {
+    if (err) throw err;
+    console.log("1 document deleted");
+    response.status(200).send(`document with id ${request.params.id} correctly deleted`);
   });
 }
  
 function update(entityName, entityNamePlural, filePath, request, response, fields){
-
   const check = checkBody(request.body, fields);
   if(check.ok){
-    fs.readFile(filePath, 'utf8', (err, data) => {
-      if (err){
-          console.log(err);
-      } else {  
-        const obj = JSON.parse(data);
-        const index = obj[entityNamePlural].findIndex(el=> (el.id === Number(request.params.id)));
-        const objectToUpdate = obj[entityNamePlural][index];
-        const updatedObject =  {id:request.params.id, ...request.body};
-        obj[entityNamePlural][index] = updatedObject;
-  
-        json = JSON.stringify(obj);
-        fs.writeFile(filePath, json, 'utf8', (err, res) => {
-          if(err){
-            console.error(err);
-          } else {
-            response.status(200).send(`${entityName} ${JSON.stringify(objectToUpdate)} has been successfully updated to ${JSON.stringify(updatedObject)}!`);
-          }
-        });
-      }
+    const updatedUser = request.body;
+
+    mongoDbClient.db.collection(entityNamePlural).updateOne({ _id:ObjectID(request.params.id) }, { $set:updatedUser }, (err, result) => {
+      if (err) throw err;
+      console.log("1 document updated");
+      response.status(200).send(`document ${JSON.stringify(updatedUser)} with id ${request.params.id} correctly updated`);
     });
+
+
   }else{
     response.send(`additional keys : ${check.additionalKeys}, missing keys : ${check.missingKeys}`);
   }
@@ -92,14 +52,11 @@ function update(entityName, entityNamePlural, filePath, request, response, field
 }
 
 function selectAll(entityName, entityNamePlural, filePath, request, response){
-  fs.readFile(filePath, 'utf8', (err, data) => {
-    if (err){
-        console.log(err);
-    } else {
-      let obj = JSON.parse(data);
-      response.status(200).send(obj[entityNamePlural]);
-    }
+  mongoDbClient.db.collection(entityNamePlural).find().toArray( (err, results) => {
+    console.log(results)
+    response.status(200).send(results);
   });
+  
 }
 
 function checkBody(body, necessaryFields){
